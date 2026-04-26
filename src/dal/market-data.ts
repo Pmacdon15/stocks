@@ -1,9 +1,18 @@
-"use server";
+import { cacheLife, cacheTag } from "next/cache";
+import { connection } from "next/server";
+
+import YahooFinance from "yahoo-finance2";
+
+const yahooFinance = new YahooFinance();
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 const BASE_URL = "https://finnhub.io/api/v1";
 
 export async function getStockPrice(symbol: string): Promise<number> {
+  "use cache";
+  cacheTag(`price-stock-${symbol}`);
+  cacheLife({ revalidate: 35, expire: 35, stale: 35 });
+  await connection;
   if (!FINNHUB_API_KEY) {
     return Number((Math.random() * 100 + 50).toFixed(2));
   }
@@ -11,7 +20,6 @@ export async function getStockPrice(symbol: string): Promise<number> {
   try {
     const res = await fetch(
       `${BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
-      { next: { tags: [`price-stock-${symbol}`] } },
     );
 
     if (!res.ok) throw new Error("Failed to fetch stock price");
@@ -27,6 +35,9 @@ export async function getStockPrice(symbol: string): Promise<number> {
 }
 
 export async function searchMarketStocks(query: string) {
+  "use cache";
+  cacheTag(`popular-stocks`);
+  cacheLife("weeks");
   if (!FINNHUB_API_KEY) {
     const popular = [
       "AAPL",
@@ -48,9 +59,6 @@ export async function searchMarketStocks(query: string) {
   try {
     const res = await fetch(
       `${BASE_URL}/search?q=${query}&token=${FINNHUB_API_KEY}`,
-      {
-        next: { revalidate: 3600 },
-      },
     );
 
     if (!res.ok) throw new Error("Failed to fetch assets");
@@ -73,63 +81,90 @@ export async function searchMarketStocks(query: string) {
   }
 }
 
+async function fetchYahooBars(
+  symbol: string,
+  interval: "5m" | "1h" | "1d" | "1wk" | "1mo",
+  period1: number,
+  period2: number,
+): Promise<{ time: number; price: number }[] | null> {
+  "use cache";
+  cacheTag(`stock-bar-yahoo-${symbol}-${interval}-${period1}-${period2}`);
+  cacheLife({ stale: 35, revalidate: 35, expire: 35 });
+  await connection;
+  try {
+    const result: any = await yahooFinance.chart(symbol, {
+      period1: new Date(period1 * 1000),
+      period2: new Date(period2 * 1000),
+      interval,
+    });
+
+    if (!result.quotes || result.quotes.length === 0) {
+      console.warn(`No quotes returned from Yahoo for ${symbol} (${interval})`);
+      return [];
+    }
+
+    return result.quotes
+      .filter((q: any) => q.close !== null && q.date !== null)
+      .map((q: any) => ({
+        time: Math.floor(new Date(q.date).getTime() / 1000),
+        price: Number(q.close!.toFixed(2)),
+      }));
+  } catch (e: any) {
+    console.error(`Yahoo Finance error for ${symbol}:`, e.message, e.stack);
+    return null;
+  }
+}
+
 export async function getStockBars(
   symbol: string,
   timeframe: "1D" | "1W" | "1M" | "1Y" | "5Y",
 ) {
-  if (!FINNHUB_API_KEY) {
-    return generateMockBars(timeframe);
-  }
-
   try {
-    const to = Math.floor(Date.now() / 1000);
+    // Round to nearest 30 seconds to improve cache hits
+    const to = Math.floor(Date.now() / 30000) * 30;
     let from = to;
-    let resolution = "D";
+    let interval: "5m" | "1h" | "1d" | "1wk" | "1mo" = "1d";
 
     switch (timeframe) {
       case "1D":
-        from = to - 24 * 60 * 60;
-        resolution = "5";
+        // Fetch last 7 days to ensure we get the most recent trading day
+        from = to - 7 * 24 * 60 * 60;
+        interval = "5m";
         break;
       case "1W":
         from = to - 7 * 24 * 60 * 60;
-        resolution = "60";
+        interval = "1h";
         break;
       case "1M":
         from = to - 30 * 24 * 60 * 60;
-        resolution = "D";
+        interval = "1d";
         break;
       case "1Y":
         from = to - 365 * 24 * 60 * 60;
-        resolution = "W";
+        interval = "1wk";
         break;
       case "5Y":
         from = to - 5 * 365 * 24 * 60 * 60;
-        resolution = "M";
+        interval = "1mo";
         break;
     }
 
-    const res = await fetch(
-      `${BASE_URL}/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}&token=${FINNHUB_API_KEY}`,
-      {
-        next: { revalidate: 60 },
-      },
-    );
+    const data = await fetchYahooBars(symbol, interval, from, to);
 
-    if (!res.ok) throw new Error("Failed to fetch candles");
-
-    const data = await res.json();
-    if (data.s === "no_data" || !data.c) {
-      return generateMockBars(timeframe);
+    if (timeframe === "1D" && data && data.length > 0) {
+      // If we fetched multiple days, just show the latest day's data
+      const lastDate = new Date(
+        data[data.length - 1].time * 1000,
+      ).toDateString();
+      return data.filter(
+        (d) => new Date(d.time * 1000).toDateString() === lastDate,
+      );
     }
 
-    return data.c.map((closePrice: number, index: number) => ({
-      time: data.t[index],
-      price: Number(closePrice.toFixed(2)),
-    }));
+    return data || [];
   } catch (e) {
-    console.error(e);
-    return generateMockBars(timeframe);
+    console.error(`Error in getStockBars for ${symbol}:`, e);
+    return [];
   }
 }
 

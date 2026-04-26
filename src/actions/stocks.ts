@@ -1,15 +1,32 @@
 "use server";
 
+import { updateTag } from "next/cache";
 import { followStock, tradeStock, unfollowStock } from "@/dal/stocks";
 
 export async function followStockAction(symbol: string) {
-  await followStock(symbol);
-  // revalidatePath('/follow');
+  const res = await followStock(symbol);
+  return res.match(
+    (data) => {
+      updateTag(`followed-stocks-${data.userId}`);
+      return { data };
+    },
+    (err) => {
+      return { error: err.reason };
+    },
+  );
 }
 
 export async function unfollowStockAction(symbol: string) {
-  await unfollowStock(symbol);
-  // revalidatePath('/follow');
+  const res = await unfollowStock(symbol);
+  return res.match(
+    (data) => {
+      updateTag(`followed-stocks-${data.userId}`);
+      return { data };
+    },
+    (err) => {
+      return { error: err.reason };
+    },
+  );
 }
 
 export async function tradeStockAction(
@@ -17,7 +34,14 @@ export async function tradeStockAction(
   shares: number,
   type: "BUY" | "SELL",
 ) {
-  await tradeStock(symbol, shares, type);
-  // revalidatePath('/trade');
-  // revalidatePath('/follow');
+  const res = await tradeStock(symbol, shares, type);
+  return res.match(
+    (data) => {
+      updateTag(`portfolio-${data.userId}`);
+      return { data };
+    },
+    (err) => {
+      return { error: err.reason };
+    },
+  );
 }
