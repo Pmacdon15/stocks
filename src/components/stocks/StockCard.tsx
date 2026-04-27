@@ -90,11 +90,11 @@ export function StockCard({ symbol, price, ownedShares, averageCost, isFollowed 
         </div>
         {isFollowed !== undefined && (
           isFollowed ? (
-            <Button variant="ghost" size="sm" onClick={() => unfollow.mutate(symbol)} disabled={unfollow.isPending} className="text-muted-foreground hover:text-destructive">
+            <Button variant="ghost" size="lg" onClick={() => unfollow.mutate(symbol)} disabled={unfollow.isPending} className="text-muted-foreground hover:text-destructive">
               Unfollow
             </Button>
           ) : (
-            <Button variant="outline" size="sm" onClick={() => follow.mutate(symbol)} disabled={follow.isPending}>
+            <Button variant="outline" size="lg" onClick={() => follow.mutate(symbol)} disabled={follow.isPending}>
               Follow
             </Button>
           )
@@ -161,30 +161,33 @@ export function StockCard({ symbol, price, ownedShares, averageCost, isFollowed 
         )}
 
         {/* Trade Controls */}
-        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-border/50">
+        <div className="mt-6 flex flex-col gap-3 pt-4 border-t border-border/50">
           <Input 
             type="number" 
             min="1" 
             value={sharesStr} 
             onChange={(e) => setSharesStr(e.target.value)} 
-            className="w-full sm:w-24 bg-background shadow-sm"
+            className="w-full bg-background shadow-sm"
             placeholder="Qty"
           />
-          <Button 
-            className="flex-1 w-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" 
-            onClick={() => handleTrade('BUY')}
-            disabled={trade.isPending}
-          >
-            Buy {symbol}
-          </Button>
-          <Button 
-            variant="outline"
-            className="flex-1 w-full border-destructive text-destructive hover:bg-destructive/10 shadow-sm" 
-            onClick={() => handleTrade('SELL')}
-            disabled={trade.isPending || (ownedShares || 0) < parseInt(sharesStr || '0', 10)}
-          >
-            Sell
-          </Button>
+          <div className="flex gap-3 w-full">
+            <Button 
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" 
+              size={'lg'}
+              onClick={() => handleTrade('BUY')}
+              disabled={trade.isPending}
+            >
+              Buy {symbol}
+            </Button>
+            <Button 
+              variant="outline"
+              className="flex-1 border-destructive text-destructive hover:bg-destructive/10 shadow-sm" 
+              onClick={() => handleTrade('SELL')}
+              disabled={trade.isPending || (ownedShares || 0) < parseInt(sharesStr || '0', 10)}
+            >
+              Sell
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
