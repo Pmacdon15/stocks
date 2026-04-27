@@ -28,7 +28,11 @@ export async function followStock(symbol: string) {
     return errAsync({
       reason: "Unauthorized",
     } as const);
-  const followLimit = has({ feature: "follow_10_stocks" }) ? 10 : 0;
+  const followLimit = has({ feature: "follow_10_stocks" })
+    ? 10
+    : has({ feature: "follow_20_stocks" })
+      ? 20
+      : 0;
   try {
     const followed = await getUserFollowedStocks(userId);
     if (followed.length >= followLimit) {
@@ -84,12 +88,16 @@ export async function tradeStock(
 ) {
   const { userId, has } = await auth.protect();
   if (!userId) return errAsync({ reason: "Unauthorized" } as const);
-  const stockLimit = has({ feature: "trade_10_stocks" }) ? 10 : 0;
+  const stockLimit = has({ feature: "trade_10_stocks" })
+    ? 10
+    : has({ feature: "trade_20_stocks" })
+      ? 20
+      : 0;
 
   try {
     const user = await getAuthUser();
     if (!user) return errAsync({ reason: "User not found" } as const);
-    const amountOfStocks = await  getUserAmountOfStocksDb(user.clerk_id);
+    const amountOfStocks = await getUserAmountOfStocksDb(user.clerk_id);
     if (amountOfStocks >= stockLimit) {
       return errAsync({
         reason: `Your stock limit is ${stockLimit}, you have ${amountOfStocks}`,
