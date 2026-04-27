@@ -16,7 +16,7 @@ export async function StockDetail({
     getFollowedStocks(),
   ]);
 
-  const ownedPosition = portfolio.find((s) => s.symbol === symbol);
+  const ownedPosition = portfolio?.find((s) => s.symbol === symbol);
 
   if (!symbol) {
     return (
