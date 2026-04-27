@@ -7,10 +7,10 @@ const isProtectedRoute = createRouteMatcher([
   "/popular(.*)",
 ]);
 
-export default clerkMiddleware((auth, req) => {
+export default  clerkMiddleware(async (auth, req) => {
   // 2. If the route matches, enforce authentication
   if (isProtectedRoute(req)) {
-    auth.protect();
+    await auth.protect();
   }
 });
 
