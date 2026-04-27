@@ -12,7 +12,7 @@ export async function FollowedStocksList({
     filterPromise,
   ]);
 
-  if (stocks.length === 0) {
+  if (stocks?.length === 0) {
     return (
       <div className="text-center p-12 border rounded-xl bg-muted/20 text-muted-foreground mt-8">
         You are not following any stocks yet. Use the search bar above to add
@@ -22,10 +22,10 @@ export async function FollowedStocksList({
   }
 
   let stocksWithPrices = await Promise.all(
-    stocks.map(async (s) => ({
+    stocks?.map(async (s) => ({
       ...s,
       currentPrice: await getStockPrice(s.symbol),
-    })),
+    })) ?? [],
   );
 
   if (filter) {
