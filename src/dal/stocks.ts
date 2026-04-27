@@ -11,7 +11,7 @@ import {
 import { getStockPrice } from "./market-data";
 import { getAuthUser } from "./user";
 export async function getFollowedStocks() {
-  const { userId } = await auth();
+  const { userId } = await auth.protect();
   if (!userId) throw new Error("Unauthorized");
 
   try {
