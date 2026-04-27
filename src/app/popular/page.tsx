@@ -6,15 +6,10 @@ import { getStockPrice, searchMarketStocks } from "@/dal/market-data";
 import { getFollowedStocks } from "@/dal/stocks";
 
 async function PopularList() {
-  const [popularResult, followedResult] = await Promise.allSettled([
-    searchMarketStocks("a"), 
-    getFollowedStocks(),
-  ]);
+  const popular = await searchMarketStocks("a");
+  const followedStocks = await getFollowedStocks() ?? [];
 
-  const popular = popularResult.status === 'fulfilled' ? popularResult.value : [];
-  const followedStocks = followedResult.status === 'fulfilled' ? followedResult.value : [];
-
-  const followedSet = new Set(followedStocks?.map((s) => s.symbol));
+  const followedSet = new Set(followedStocks.map((s) => s.symbol));
 
   const popularWithPrices = await Promise.all(
     popular.map(async (s: any) => ({
