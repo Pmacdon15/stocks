@@ -16,10 +16,10 @@ export async function PortfolioList({
   ]);
 
   let portfolioWithPrices = await Promise.all(
-    portfolio.map(async (s) => ({
+    portfolio?.map(async (s) => ({
       ...s,
       currentPrice: await getStockPrice(s.symbol),
-    })),
+    })) || [],
   );
 
   const portfolioValue = portfolioWithPrices.reduce(
