@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -22,15 +23,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ClerkProvider>
-          <Providers>
-            <div className="min-h-screen flex flex-col bg-background">
-              <Navbar />
-              <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-                {children}
-              </main>
-            </div>
-            <Toaster position="bottom-right" richColors />
-          </Providers>
+          <div className="min-h-screen flex flex-col bg-background">
+            <Navbar />
+            <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+              <Providers>{children} </Providers>
+            </main>
+          </div>
+          <Toaster position="bottom-right" richColors />
         </ClerkProvider>
       </body>
     </html>

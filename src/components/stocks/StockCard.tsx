@@ -5,11 +5,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts';
-import { getStockBars, getCompanyDetails } from '@/dal/market-data';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useUnfollowStock, useFollowStock, useTradeStock } from '@/hooks/use-stock-mutations';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
 interface StockCardProps {
   symbol: string;
@@ -32,15 +31,23 @@ export function StockCard({ symbol, price, ownedShares, averageCost, isFollowed 
     trade.mutate({ symbol, shares, type });
   };
 
-  const { data: chartData, isLoading } = useQuery({
+  const { data: chartData, isLoading, error } = useQuery({
     queryKey: ['stockBars', symbol, timeframe],
-    queryFn: () => getStockBars(symbol, timeframe),
+    queryFn: async () => {
+      const res = await fetch(`/api/stocks/bars?symbol=${symbol}&timeframe=${timeframe}`);
+      if (!res.ok) throw new Error('Failed to fetch chart data');
+      return res.json();
+    },
     staleTime: 60 * 1000,
   });
 
   const { data: details } = useQuery({
     queryKey: ['companyDetails', symbol],
-    queryFn: () => getCompanyDetails(symbol),
+    queryFn: async () => {
+      const res = await fetch(`/api/stocks/details?symbol=${symbol}`);
+      if (!res.ok) throw new Error('Failed to fetch details');
+      return res.json();
+    },
     staleTime: 24 * 60 * 60 * 1000, // 24 hours
   });
 
@@ -104,9 +111,18 @@ export function StockCard({ symbol, price, ownedShares, averageCost, isFollowed 
           </TabsList>
         </Tabs>
         <div className="h-[200px] w-full mt-4 -ml-4">
-          {isLoading || !chartData ? (
+          {error ? (
+            <div className="h-full w-full flex flex-col items-center justify-center text-destructive text-xs bg-destructive/10 rounded-md ml-4 p-4 text-center">
+              <span className="font-bold mb-1">Chart Error</span>
+              {error instanceof Error ? error.message : 'Failed to load chart'}
+            </div>
+          ) : isLoading || !chartData ? (
             <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm bg-muted/10 rounded-md ml-4">
               Loading chart...
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm bg-muted/10 rounded-md ml-4">
+              No data available
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">

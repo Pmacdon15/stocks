@@ -45,7 +45,9 @@ export default function PopularPage() {
         </p>
       </div>
 
-      <SearchBar />
+      <Suspense fallback={<div className="h-10 w-full max-w-lg bg-muted animate-pulse rounded-md"></div>}>
+        <SearchBar />
+      </Suspense>
 
       <Suspense
         fallback={

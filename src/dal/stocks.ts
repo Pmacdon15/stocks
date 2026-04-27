@@ -1,4 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
+import { errAsync, okAsync } from "neverthrow";
+import { connection } from "next/server";
 import {
   executeTradeDb,
   followStockDb,
@@ -8,8 +10,8 @@ import {
 } from "@/db/queries";
 import { getStockPrice } from "./market-data";
 import { getAuthUser } from "./user";
-
 export async function getFollowedStocks() {
+  await connection;
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
@@ -23,29 +25,37 @@ export async function getFollowedStocks() {
 
 export async function followStock(symbol: string) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return errAsync({ reason: "Not Authorized" } as const);
 
   try {
     const followed = await getUserFollowedStocks(userId);
     if (followed.length >= 10) {
-      throw new Error("You can only follow up to 10 stocks.");
+      return errAsync({
+        reason: "You can only follow up to 10 stocks.",
+      } as const);
     }
     await followStockDb(userId, symbol);
+    return okAsync({ userId });
   } catch (error: any) {
     console.error(error);
-    throw new Error(error.message || "Failed to follow stock");
+    return errAsync({
+      reason: "Failed to follow stock",
+    } as const);
   }
 }
 
 export async function unfollowStock(symbol: string) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  const { userId } = await auth.protect();
+  if (!userId) return errAsync({ reason: "Not Authorized" } as const);
 
   try {
     await unfollowStockDb(userId, symbol);
+    return okAsync({ userId });
   } catch (error) {
     console.error(error);
-    throw new Error("Failed to unfollow stock");
+    return errAsync({
+      reason: "Failed to unfollow stock",
+    } as const);
   }
 }
 
@@ -67,29 +77,34 @@ export async function tradeStock(
   shares: number,
   type: "BUY" | "SELL",
 ) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-
   try {
-    const user = await getAuthUser();
-    const currentPrice = await getStockPrice(symbol);
+    const [user, currentPrice] = await Promise.all([
+      getAuthUser(),
+      getStockPrice(symbol),
+    ]);
+    if (!user) return errAsync({ reason: "Not Authorized" } as const);
+
     const totalCost = shares * currentPrice;
 
     if (type === "BUY") {
       if (Number(user.balance) < totalCost) {
-        throw new Error("Insufficient funds");
+        return errAsync({ reason: "Insufficient funds" } as const);
       }
     } else {
-      const owned = await getOwnedStocks(userId);
+      const owned = await getOwnedStocks(user.clerk_id);
       const stock = owned.find((s) => s.symbol === symbol);
       if (!stock || stock.shares < shares) {
-        throw new Error("Not enough shares to sell");
+        return errAsync({ reason: "Not enough shares to sell" } as const);
       }
     }
 
-    await executeTradeDb(userId, symbol, shares, currentPrice, type);
+    await executeTradeDb(user.clerk_id, symbol, shares, currentPrice, type);
+    return okAsync({ userId: user.clerk_id });
   } catch (error: any) {
     console.error(error);
-    throw new Error(error.message || "Failed to execute trade");
+    console.error(error);
+    return errAsync({
+      reason: "Failed to execute trade",
+    } as const);
   }
 }
