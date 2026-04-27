@@ -18,7 +18,7 @@ export async function getFollowedStocks() {
     return await getUserFollowedStocks(userId);
   } catch (error) {
     console.error(error);
-    throw new Error("Failed to fetch followed stocks");
+    // throw new Error("Failed to fetch followed stocks");
   }
 }
 
@@ -77,7 +77,7 @@ export async function getPortfolio() {
     return owned;
   } catch (error) {
     console.error(error);
-    throw new Error("Failed to fetch portfolio");
+    // throw new Error("Failed to fetch portfolio");
   }
 }
 
