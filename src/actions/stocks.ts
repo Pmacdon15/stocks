@@ -7,7 +7,7 @@ export async function followStockAction(symbol: string) {
   const res = await followStock(symbol);
   return res.match(
     (data) => {
-      updateTag(`followed-stocks-${data.userId}`);
+      updateTag(`followed-stocks-${data.user_id}`);
       return { data };
     },
     (err) => {
@@ -20,7 +20,7 @@ export async function unfollowStockAction(symbol: string) {
   const res = await unfollowStock(symbol);
   return res.match(
     (data) => {
-      updateTag(`followed-stocks-${data.userId}`);
+      updateTag(`followed-stocks-${data.user_id}`);
       return { data };
     },
     (err) => {

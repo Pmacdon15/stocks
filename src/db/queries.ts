@@ -57,22 +57,24 @@ export async function getUserFollowedStocks(
 export async function followStockDb(
   clerkId: string,
   symbol: string,
-): Promise<void> {
-  await sql`
+): Promise<UserStock> {
+  const result = await sql`
     INSERT INTO user_stocks (user_id, symbol) 
     VALUES (${clerkId}, ${symbol})
     ON CONFLICT (user_id, symbol) DO NOTHING RETURNING *
   `;
+  return (result[0] as UserStock) || { user_id: clerkId, symbol, created_at: new Date() };
 }
 
 export async function unfollowStockDb(
   clerkId: string,
   symbol: string,
-): Promise<void> {
-  await sql`
+): Promise<UserStock> {
+  const result = await sql`
     DELETE FROM user_stocks 
     WHERE user_id = ${clerkId} AND symbol = ${symbol} RETURNING *
   `;
+  return (result[0] as UserStock) || { user_id: clerkId, symbol, created_at: new Date() };
 }
 
 export async function getTransactions(clerkId: string): Promise<Transaction[]> {
@@ -122,4 +124,17 @@ export async function executeTradeDb(
     sql`UPDATE users SET balance = balance + ${balanceAdjustment} WHERE clerk_id = ${clerkId}`,
     sql`INSERT INTO transactions (user_id, symbol, shares, price, type) VALUES (${clerkId}, ${symbol}, ${shares}, ${price}, ${type}) RETURNING *`,
   ]);
+}
+
+export async function getUserAmountOfStocksDb(clerkId: string): Promise<number> {
+  const result = await sql`
+    SELECT COUNT(*) as count FROM (
+      SELECT symbol
+      FROM transactions
+      WHERE user_id = ${clerkId}
+      GROUP BY symbol
+      HAVING SUM(CASE WHEN type = 'BUY' THEN shares ELSE -shares END) > 0
+    ) as owned_stocks
+  `;
+  return Number(result[0].count);
 }
