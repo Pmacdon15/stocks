@@ -1,10 +1,11 @@
 import { cacheLife, cacheTag } from "next/cache";
+import { connection } from "next/server";
 import { sql } from "./index";
 
 export type User = {
   id: number;
   clerk_id: string;
-  balance: string; 
+  balance: string;
   created_at: Date;
 };
 
@@ -26,6 +27,7 @@ export type Transaction = {
 };
 
 export async function getUser(clerkId: string): Promise<User | null> {
+  await connection;
   const result = await sql`SELECT * FROM users WHERE clerk_id = ${clerkId}`;
   return (result[0] as User) || null;
 }
@@ -42,9 +44,9 @@ export async function createUser(clerkId: string): Promise<User> {
 export async function getUserFollowedStocks(
   clerkId: string,
 ): Promise<UserStock[]> {
-   "use cache";
+  "use cache";
   cacheTag(`followed-stocks-${clerkId}`);
-  cacheLife('days')
+  cacheLife("days");
 
   const result = await sql`
     SELECT * FROM user_stocks 
@@ -63,7 +65,13 @@ export async function followStockDb(
     VALUES (${clerkId}, ${symbol})
     ON CONFLICT (user_id, symbol) DO NOTHING RETURNING *
   `;
-  return (result[0] as UserStock) || { user_id: clerkId, symbol, created_at: new Date() };
+  return (
+    (result[0] as UserStock) || {
+      user_id: clerkId,
+      symbol,
+      created_at: new Date(),
+    }
+  );
 }
 
 export async function unfollowStockDb(
@@ -74,7 +82,13 @@ export async function unfollowStockDb(
     DELETE FROM user_stocks 
     WHERE user_id = ${clerkId} AND symbol = ${symbol} RETURNING *
   `;
-  return (result[0] as UserStock) || { user_id: clerkId, symbol, created_at: new Date() };
+  return (
+    (result[0] as UserStock) || {
+      user_id: clerkId,
+      symbol,
+      created_at: new Date(),
+    }
+  );
 }
 
 export async function getTransactions(clerkId: string): Promise<Transaction[]> {
@@ -91,7 +105,7 @@ export async function getOwnedStocks(
 ): Promise<{ symbol: string; shares: number; averageCost: number }[]> {
   "use cache";
   cacheTag(`portfolio-${clerkId}`);
-  cacheLife('days')
+  cacheLife("days");
   const result = await sql`
     SELECT 
       symbol, 
@@ -126,7 +140,35 @@ export async function executeTradeDb(
   ]);
 }
 
-export async function getUserAmountOfStocksDb(clerkId: string): Promise<number> {
+export async function addDividendDb(
+  clerkId: string,
+  amount: number,
+): Promise<void> {
+  await sql`UPDATE users SET balance = balance + ${amount} WHERE clerk_id = ${clerkId}`;
+}
+
+export async function getAllOwnedStocksWithUsers(): Promise<
+  { symbol: string; user_id: string; shares: number }[]
+> {
+  const result = await sql`
+    SELECT 
+      symbol, 
+      user_id,
+      SUM(CASE WHEN type = 'BUY' THEN shares ELSE -shares END) as shares
+    FROM transactions
+    GROUP BY symbol, user_id
+    HAVING SUM(CASE WHEN type = 'BUY' THEN shares ELSE -shares END) > 0
+  `;
+  return result.map((r) => ({
+    symbol: r.symbol,
+    user_id: r.user_id,
+    shares: Number(r.shares),
+  }));
+}
+
+export async function getUserAmountOfStocksDb(
+  clerkId: string,
+): Promise<number> {
   const result = await sql`
     SELECT COUNT(*) as count FROM (
       SELECT symbol
