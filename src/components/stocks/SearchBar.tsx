@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -10,13 +10,19 @@ import { Input } from "@/components/ui/input";
 import { useFollowStock } from "@/hooks/use-stock-mutations";
 import { useStockSearch } from "@/hooks/use-stock-search";
 
-export function SearchBar() {
+export function SearchBar({ placeholder = "Search for stocks (e.g. AAPL)..." }: { placeholder?: string }) {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("filter") || "");
   const [showDropdown, setShowDropdown] = useState(false);
   const { data: results, isLoading } = useStockSearch(query);
   const followStock = useFollowStock();
   const router = useRouter();
+
+  const handleClear = () => {
+    setQuery("");
+    setShowDropdown(false);
+    router.push("?");
+  };
 
   return (
     <div className="relative w-full max-w-lg">
@@ -33,19 +39,29 @@ export function SearchBar() {
           }
         }}
       >
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               setShowDropdown(true);
             }}
-            placeholder="Search for stocks (e.g. AAPL)..."
-            className="pl-9 w-full shadow-sm"
+            placeholder={placeholder}
+            className="pl-9 pr-9 w-full shadow-sm"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
-        <Button type="submit" variant="default">
+        <Button type="submit" variant="default" className="px-6 font-bold">
           Search
         </Button>
       </form>

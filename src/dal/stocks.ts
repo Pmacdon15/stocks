@@ -4,12 +4,26 @@ import {
   executeTradeDb,
   followStockDb,
   getOwnedStocks,
+  getTransactions,
   getUserAmountOfStocksDb,
   getUserFollowedStocks,
   unfollowStockDb,
 } from "@/db/queries";
 import { getStockPrice } from "./market-data";
 import { getAuthUser } from "./user";
+
+export async function getHistory(page: number = 1, limit: number = 20, search?: string) {
+  const { userId } = await auth.protect();
+  if (!userId) throw new Error("Unauthorized");
+
+  const offset = (page - 1) * limit;
+
+  try {
+    return await getTransactions(userId, limit, offset, search);
+  } catch (error) {
+    console.error(error);
+  }
+}
 export async function getFollowedStocks() {
   const { userId } = await auth.protect();
   if (!userId) throw new Error("Unauthorized");

@@ -91,13 +91,59 @@ export async function unfollowStockDb(
   );
 }
 
-export async function getTransactions(clerkId: string): Promise<Transaction[]> {
-  const result = await sql`
-    SELECT * FROM transactions 
-    WHERE user_id = ${clerkId}
-    ORDER BY created_at DESC
-  `;
-  return result as Transaction[];
+export async function getTransactions(
+  clerkId: string,
+  limit: number = 20,
+  offset: number = 0,
+  search?: string,
+): Promise<{ transactions: Transaction[]; total: number }> {
+  'use cache'
+  cacheTag(`transactions-${clerkId}`)
+  cacheLife('days')
+  const searchQuery = search ? `%${search}%` : null;
+
+  const [transactions, countResult] = await Promise.all([
+    searchQuery
+      ? sql`
+          SELECT * FROM transactions 
+          WHERE user_id = ${clerkId}
+          AND (
+            symbol ILIKE ${searchQuery} 
+            OR price::text ILIKE ${searchQuery} 
+            OR shares::text ILIKE ${searchQuery}
+            OR (price * shares)::text ILIKE ${searchQuery}
+            OR to_char(created_at, 'MM/DD/YYYY') ILIKE ${searchQuery}
+            OR to_char(created_at, 'YYYY-MM-DD') ILIKE ${searchQuery}
+          )
+          ORDER BY created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `
+      : sql`
+          SELECT * FROM transactions 
+          WHERE user_id = ${clerkId}
+          ORDER BY created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `,
+    searchQuery
+      ? sql`
+          SELECT COUNT(*) as count FROM transactions 
+          WHERE user_id = ${clerkId} 
+          AND (
+            symbol ILIKE ${searchQuery} 
+            OR price::text ILIKE ${searchQuery} 
+            OR shares::text ILIKE ${searchQuery}
+            OR (price * shares)::text ILIKE ${searchQuery}
+            OR to_char(created_at, 'MM/DD/YYYY') ILIKE ${searchQuery}
+            OR to_char(created_at, 'YYYY-MM-DD') ILIKE ${searchQuery}
+          )
+        `
+      : sql`SELECT COUNT(*) as count FROM transactions WHERE user_id = ${clerkId}`,
+  ]);
+
+  return {
+    transactions: transactions as Transaction[],
+    total: Number(countResult[0].count),
+  };
 }
 
 export async function getOwnedStocks(

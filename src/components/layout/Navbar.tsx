@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { Menu, TrendingUp } from "lucide-react";
@@ -9,10 +9,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function Navbar() {
   const routes = [
+    { label: "Popular", href: "/popular" },
     { label: "Follow Stocks", href: "/follow" },
     { label: "Trade", href: "/trade" },
-    { label: "Popular", href: "/popular" },
-    { label: "Pricing", href: "/pricing" },
+    { label: "Activity", href: "/transactions" },
+    // { label: "Pricing", href: "/pricing" },
   ];
 
   return (
@@ -45,7 +46,7 @@ export function Navbar() {
           </div>
           <div className="hidden md:flex items-center gap-4">
             <Show when="signed-in">
-              <UserButton  />
+              <UserButton />
             </Show>
             <Show when="signed-out">
               <SignInButton mode="modal">

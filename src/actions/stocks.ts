@@ -38,6 +38,7 @@ export async function tradeStockAction(
   return res.match(
     (data) => {
       updateTag(`portfolio-${data.userId}`);
+      updateTag(`transactions-${data.userId}`)
       return { data };
     },
     (err) => {
