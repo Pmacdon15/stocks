@@ -1,6 +1,7 @@
 import { Suspense } from "react";
-import { SearchBar } from "@/components/stocks/SearchBar";
 import { TransactionList } from "@/components/stocks/TransactionList";
+import { SearchBar } from "@/components/stocks/SearchBar";
+import { headers } from "next/headers";
 
 export default async function TransactionsPage(
   props: PageProps<"/transactions">,
@@ -14,6 +15,8 @@ export default async function TransactionsPage(
     (params) =>
       (Array.isArray(params.filter) ? params.filter[0] : params.filter) || "",
   );
+
+  const timezonePromise = headers().then(h => h.get("x-vercel-ip-timezone") || "UTC");
 
   return (
     <div className="py-8 space-y-6">
@@ -31,7 +34,7 @@ export default async function TransactionsPage(
           <div className="h-10 w-full max-w-lg bg-muted animate-pulse rounded-md"></div>
         }
       >
-        <SearchBar />
+        <SearchBar placeholder="Search by symbol, price, shares or date (MM/DD)..." />
       </Suspense>
 
       <Suspense
@@ -46,9 +49,10 @@ export default async function TransactionsPage(
           </div>
         }
       >
-        <TransactionList
-          pagePromise={pagePromise}
-          filterPromise={filterPromise}
+        <TransactionList 
+          pagePromise={pagePromise} 
+          filterPromise={filterPromise} 
+          timezonePromise={timezonePromise}
         />
       </Suspense>
     </div>

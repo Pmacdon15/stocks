@@ -1,13 +1,13 @@
 import { Suspense } from "react";
-import { SearchBar } from "@/components/stocks/SearchBar";
-import { getStockPrice, searchMarketStocks } from "@/dal/market-data";
-import { StockGridSkeleton } from "@/components/stocks/Skeletons";
-import { getFollowedStocks } from "@/dal/stocks";
 import { OptimisticStockGrid } from "@/components/stocks/OptimisticStockGrid";
+import { SearchBar } from "@/components/stocks/SearchBar";
+import { StockGridSkeleton } from "@/components/stocks/Skeletons";
+import { getStockPrice, searchMarketStocks } from "@/dal/market-data";
+import { getFollowedStocks } from "@/dal/stocks";
 
 async function PopularList() {
   const popular = await searchMarketStocks("a");
-  const followedStocks = await getFollowedStocks() ?? [];
+  const followedStocks = (await getFollowedStocks()) ?? [];
   const followedSet = new Set(followedStocks.map((s) => s.symbol));
 
   const popularWithPrices = await Promise.all(
@@ -19,9 +19,9 @@ async function PopularList() {
   );
 
   return (
-    <OptimisticStockGrid 
-      initialStocks={popularWithPrices} 
-      removeOnUnfollow={false} 
+    <OptimisticStockGrid
+      initialStocks={popularWithPrices}
+      removeOnUnfollow={false}
     />
   );
 }
@@ -36,7 +36,11 @@ export default function PopularPage() {
         </p>
       </div>
 
-      <Suspense fallback={<div className="h-10 w-full max-w-lg bg-muted animate-pulse rounded-md"></div>}>
+      <Suspense
+        fallback={
+          <div className="h-10 w-full max-w-lg bg-muted animate-pulse rounded-md"></div>
+        }
+      >
         <SearchBar />
       </Suspense>
 
