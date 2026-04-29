@@ -166,7 +166,9 @@ export async function getAllOwnedStocksWithUsers(): Promise<
   }));
 }
 
-export async function getUserAmountOfStocksDb(clerkId: string): Promise<number> {
+export async function getUserAmountOfStocksDb(
+  clerkId: string,
+): Promise<number> {
   const result = await sql`
     SELECT COUNT(*) as count FROM (
       SELECT symbol
@@ -193,6 +195,9 @@ export async function getPortfolioSnapshots(
   clerkId: string,
   timeframe: "1D" | "1W" | "1M" | "1Y" | "5Y",
 ): Promise<{ time: number; value: number }[]> {
+  "use cache";
+  cacheTag(`portfolio-snapshots-${clerkId}`);
+  cacheLife('days')
   let intervalDays = 7;
 
   switch (timeframe) {

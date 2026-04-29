@@ -1,10 +1,10 @@
+import { Suspense } from "react";
 import { StockCard } from "@/components/stocks/StockCard";
 import { getStockPrice } from "@/dal/market-data";
 import { getPortfolio } from "@/dal/stocks";
 import { getAuthUser } from "@/dal/user";
-import { PortfolioOverview } from "./PortfolioOverview";
 import { getPortfolioSnapshots } from "@/db/queries";
-import { Suspense } from "react";
+import { PortfolioOverview } from "./PortfolioOverview";
 import { PortfolioOverviewSkeleton } from "./Skeletons";
 
 export async function PortfolioList({
@@ -37,14 +37,18 @@ export async function PortfolioList({
 
   // Fetch history on server based on selected timeframe
   const selectedTimeframe = timeframe || "1W";
-  const snapshots = await getPortfolioSnapshots(user.clerk_id, selectedTimeframe);
-  
-  const history = snapshots.length <= 1 
-    ? [
-        snapshots[0] || { time: Date.now() / 1000 - 86400, value: 10000 },
-        { time: Date.now() / 1000, value: totalValue }
-      ]
-    : snapshots;
+  const snapshots = await getPortfolioSnapshots(
+    user.clerk_id,
+    selectedTimeframe,
+  );
+
+  const history =
+    snapshots.length <= 1
+      ? [
+          snapshots[0] || { time: Date.now() / 1000 - 86400, value: 10000 },
+          { time: Date.now() / 1000, value: totalValue },
+        ]
+      : snapshots;
 
   if (filter) {
     const f = filter.toLowerCase();
@@ -56,7 +60,7 @@ export async function PortfolioList({
   return (
     <div className="space-y-12">
       <Suspense fallback={<PortfolioOverviewSkeleton />}>
-        <PortfolioOverview 
+        <PortfolioOverview
           totalValue={totalValue}
           totalProfit={totalProfit}
           buyingPower={Number(user.balance)}
@@ -73,7 +77,7 @@ export async function PortfolioList({
             {portfolioWithPrices.length} Active Assets
           </div>
         </div>
-        
+
         {portfolioWithPrices.length === 0 ? (
           <div className="text-center p-16 border-2 border-dashed rounded-[2rem] bg-muted/10 text-muted-foreground">
             {filter
@@ -97,3 +101,4 @@ export async function PortfolioList({
     </div>
   );
 }
+ 
