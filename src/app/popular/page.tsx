@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { SearchBar } from "@/components/stocks/SearchBar";
 import { StockCard } from "@/components/stocks/StockCard";
 import { getStockPrice, searchMarketStocks } from "@/dal/market-data";
+import { StockGridSkeleton } from "@/components/stocks/Skeletons";
 
 import { getFollowedStocks } from "@/dal/stocks";
 
@@ -49,8 +50,8 @@ export default function PopularPage() {
 
       <Suspense
         fallback={
-          <div className="mt-8 text-center text-muted-foreground animate-pulse p-12 bg-muted/10 rounded-xl border">
-            Loading popular stocks...
+          <div className="mt-8">
+            <StockGridSkeleton count={6} />
           </div>
         }
       >

@@ -193,29 +193,23 @@ export async function getPortfolioSnapshots(
   clerkId: string,
   timeframe: "1D" | "1W" | "1M" | "1Y" | "5Y",
 ): Promise<{ time: number; value: number }[]> {
-  let interval = sql`1 day`;
-  let limit = 100;
+  let intervalDays = 7;
 
   switch (timeframe) {
     case "1D":
-      interval = sql`1 hour`; // If we have hourly snapshots
-      limit = 24;
+      intervalDays = 1;
       break;
     case "1W":
-      interval = sql`1 day`;
-      limit = 7;
+      intervalDays = 7;
       break;
     case "1M":
-      interval = sql`1 day`;
-      limit = 30;
+      intervalDays = 30;
       break;
     case "1Y":
-      interval = sql`1 week`;
-      limit = 52;
+      intervalDays = 365;
       break;
     case "5Y":
-      interval = sql`1 month`;
-      limit = 60;
+      intervalDays = 365 * 5;
       break;
   }
 
@@ -224,15 +218,13 @@ export async function getPortfolioSnapshots(
       EXTRACT(EPOCH FROM created_at) as time,
       total_value as value
     FROM portfolio_snapshots
-    WHERE user_id = ${clerkId}
-    ORDER BY created_at DESC
-    LIMIT ${limit}
+    WHERE user_id = ${clerkId} 
+    AND created_at >= NOW() - (${intervalDays} || ' days')::interval
+    ORDER BY created_at ASC
   `;
 
-  return result
-    .map((r) => ({
-      time: Number(r.time),
-      value: Number(r.value),
-    }))
-    .reverse();
+  return result.map((r) => ({
+    time: Number(r.time),
+    value: Number(r.value),
+  }));
 }

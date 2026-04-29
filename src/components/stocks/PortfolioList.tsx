@@ -5,15 +5,19 @@ import { getAuthUser } from "@/dal/user";
 import { PortfolioOverview } from "./PortfolioOverview";
 import { getPortfolioSnapshots } from "@/db/queries";
 import { Suspense } from "react";
+import { PortfolioOverviewSkeleton } from "./Skeletons";
 
 export async function PortfolioList({
   filterPromise,
+  timeframePromise,
 }: {
-  filterPromise?: Promise<string>
+  filterPromise?: Promise<string>;
+  timeframePromise?: Promise<"1D" | "1W" | "1M" | "1Y" | "5Y">;
 }) {
-  const [portfolio, filter, user] = await Promise.all([
+  const [portfolio, filter, timeframe, user] = await Promise.all([
     getPortfolio(),
     filterPromise,
+    timeframePromise,
     getAuthUser(),
   ]);
 
@@ -31,9 +35,11 @@ export async function PortfolioList({
   const totalValue = Number(user.balance) + portfolioValue;
   const totalProfit = totalValue - 10000;
 
-  // Fetch initial history on server
-  const snapshots = await getPortfolioSnapshots(user.clerk_id, "1W");
-  const initialHistory = snapshots.length <= 1 
+  // Fetch history on server based on selected timeframe
+  const selectedTimeframe = timeframe || "1W";
+  const snapshots = await getPortfolioSnapshots(user.clerk_id, selectedTimeframe);
+  
+  const history = snapshots.length <= 1 
     ? [
         snapshots[0] || { time: Date.now() / 1000 - 86400, value: 10000 },
         { time: Date.now() / 1000, value: totalValue }
@@ -49,17 +55,14 @@ export async function PortfolioList({
 
   return (
     <div className="space-y-12">
-      <Suspense fallback={
-        <div className="w-full h-[400px] bg-muted/20 animate-pulse rounded-[2rem] border border-border/50 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading performance data...</p>
-        </div>
-      }>
+      <Suspense fallback={<PortfolioOverviewSkeleton />}>
         <PortfolioOverview 
           totalValue={totalValue}
           totalProfit={totalProfit}
           buyingPower={Number(user.balance)}
           portfolioValue={portfolioValue}
-          initialHistory={initialHistory}
+          history={history}
+          timeframe={selectedTimeframe}
         />
       </Suspense>
 
