@@ -19,6 +19,7 @@ interface TransactionTableProps {
   page: number;
   limit: number;
   filter: string;
+  timezone: string;
 }
 
 export function TransactionTable({
@@ -27,6 +28,7 @@ export function TransactionTable({
   page,
   limit,
   filter,
+  timezone,
 }: TransactionTableProps) {
   const [typeFilter, setTypeFilter] = useState<"ALL" | "BUY" | "SELL">("ALL");
 
@@ -43,6 +45,23 @@ export function TransactionTable({
     if (p > 1) params.set("page", p.toString());
     if (filter) params.set("filter", filter);
     return `/transactions${params.toString() ? `?${params.toString()}` : ""}`;
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: timezone
+    }).format(new Date(date));
+  };
+
+  const formatTime = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: timezone
+    }).format(new Date(date));
   };
 
   return (
@@ -103,12 +122,9 @@ export function TransactionTable({
                         className="hover:bg-muted/20 transition-colors group"
                       >
                         <td className="px-6 py-4 text-sm text-muted-foreground">
-                          {new Date(t.created_at).toLocaleDateString()}
+                          {formatDate(t.created_at)}
                           <span className="block text-[10px] opacity-60">
-                            {new Date(t.created_at).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {formatTime(t.created_at)}
                           </span>
                         </td>
                         <td className="px-6 py-4 font-bold text-foreground group-hover:text-primary transition-colors">
@@ -192,4 +208,3 @@ export function TransactionTable({
     </div>
   );
 }
-                  

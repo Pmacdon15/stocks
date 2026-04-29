@@ -34,6 +34,7 @@ export async function TransactionList({
       page={page}
       limit={limit}
       filter={filter}
+      timezone={timezone}
     />
   );
 }

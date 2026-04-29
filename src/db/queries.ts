@@ -113,8 +113,8 @@ export async function getTransactions(
             OR price::text ILIKE ${searchQuery} 
             OR shares::text ILIKE ${searchQuery}
             OR (price * shares)::text ILIKE ${searchQuery}
-            OR to_char(created_at AT TIME ZONE 'UTC' AT TIME ZONE ${timezone}, 'MM/DD/YYYY') ILIKE ${searchQuery}
-            OR to_char(created_at AT TIME ZONE 'UTC' AT TIME ZONE ${timezone}, 'YYYY-MM-DD') ILIKE ${searchQuery}
+            OR to_char(created_at AT TIME ZONE ${timezone}, 'MM/DD/YYYY') ILIKE ${searchQuery}
+            OR to_char(created_at AT TIME ZONE ${timezone}, 'YYYY-MM-DD') ILIKE ${searchQuery}
           )
           ORDER BY created_at DESC
           LIMIT ${limit} OFFSET ${offset}
@@ -134,8 +134,8 @@ export async function getTransactions(
             OR price::text ILIKE ${searchQuery} 
             OR shares::text ILIKE ${searchQuery}
             OR (price * shares)::text ILIKE ${searchQuery}
-            OR to_char(created_at AT TIME ZONE 'UTC' AT TIME ZONE ${timezone}, 'MM/DD/YYYY') ILIKE ${searchQuery}
-            OR to_char(created_at AT TIME ZONE 'UTC' AT TIME ZONE ${timezone}, 'YYYY-MM-DD') ILIKE ${searchQuery}
+            OR to_char(created_at AT TIME ZONE ${timezone}, 'MM/DD/YYYY') ILIKE ${searchQuery}
+            OR to_char(created_at AT TIME ZONE ${timezone}, 'YYYY-MM-DD') ILIKE ${searchQuery}
           )
         `
       : sql`SELECT COUNT(*) as count FROM transactions WHERE user_id = ${clerkId}`,
