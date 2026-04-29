@@ -26,3 +26,13 @@ CREATE TABLE transactions (
 -- Index for faster queries
 CREATE INDEX idx_user_stocks_user_id ON user_stocks(user_id);
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
+
+CREATE TABLE portfolio_snapshots (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL REFERENCES users(clerk_id) ON DELETE CASCADE,
+  total_value DECIMAL(15, 2) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_portfolio_snapshots_user_id ON portfolio_snapshots(user_id);
+CREATE INDEX idx_portfolio_snapshots_created_at ON portfolio_snapshots(created_at);

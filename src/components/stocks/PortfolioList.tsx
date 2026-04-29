@@ -1,8 +1,10 @@
 import { StockCard } from "@/components/stocks/StockCard";
-import { Card, CardContent } from "@/components/ui/card";
 import { getStockPrice } from "@/dal/market-data";
 import { getPortfolio } from "@/dal/stocks";
 import { getAuthUser } from "@/dal/user";
+import { PortfolioOverview } from "./PortfolioOverview";
+import { getPortfolioSnapshots } from "@/db/queries";
+import { Suspense } from "react";
 
 export async function PortfolioList({
   filterPromise,
@@ -29,6 +31,15 @@ export async function PortfolioList({
   const totalValue = Number(user.balance) + portfolioValue;
   const totalProfit = totalValue - 10000;
 
+  // Fetch initial history on server
+  const snapshots = await getPortfolioSnapshots(user.clerk_id, "1W");
+  const initialHistory = snapshots.length <= 1 
+    ? [
+        snapshots[0] || { time: Date.now() / 1000 - 86400, value: 10000 },
+        { time: Date.now() / 1000, value: totalValue }
+      ]
+    : snapshots;
+
   if (filter) {
     const f = filter.toLowerCase();
     portfolioWithPrices = portfolioWithPrices.filter((s) =>
@@ -37,78 +48,37 @@ export async function PortfolioList({
   }
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-card shadow-sm border-border/50">
-          <CardContent className="p-6">
-            <div className="text-sm font-medium text-muted-foreground mb-1">
-              Total Account Value
-            </div>
-            <div className="text-3xl font-bold">
-              $
-              {totalValue.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card shadow-sm border-border/50">
-          <CardContent className="p-6">
-            <div className="text-sm font-medium text-muted-foreground mb-1">
-              Total Profit/Loss
-            </div>
-            <div
-              className={`text-3xl font-bold ${totalProfit >= 0 ? "text-primary" : "text-destructive"}`}
-            >
-              {totalProfit >= 0 ? "+" : ""}$
-              {totalProfit.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card shadow-sm border-primary/20">
-          <CardContent className="p-6">
-            <div className="text-sm font-medium text-primary mb-1">
-              Buying Power
-            </div>
-            <div className="text-3xl font-bold text-primary">
-              $
-              {Number(user.balance).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card shadow-sm border-border/50">
-          <CardContent className="p-6">
-            <div className="text-sm font-medium text-muted-foreground mb-1">
-              Portfolio Value
-            </div>
-            <div className="text-3xl font-bold text-foreground">
-              $
-              {portfolioValue.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="space-y-12">
+      <Suspense fallback={
+        <div className="w-full h-[400px] bg-muted/20 animate-pulse rounded-[2rem] border border-border/50 flex items-center justify-center">
+          <p className="text-muted-foreground">Loading performance data...</p>
+        </div>
+      }>
+        <PortfolioOverview 
+          totalValue={totalValue}
+          totalProfit={totalProfit}
+          buyingPower={Number(user.balance)}
+          portfolioValue={portfolioValue}
+          initialHistory={initialHistory}
+        />
+      </Suspense>
 
       <div>
-        <h2 className="text-2xl font-bold mb-4">Your Positions</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-3xl font-bold tracking-tight">Your Positions</h2>
+          <div className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border/50">
+            {portfolioWithPrices.length} Active Assets
+          </div>
+        </div>
+        
         {portfolioWithPrices.length === 0 ? (
-          <div className="text-center p-12 border rounded-xl bg-muted/20 text-muted-foreground">
+          <div className="text-center p-16 border-2 border-dashed rounded-[2rem] bg-muted/10 text-muted-foreground">
             {filter
               ? "No positions match your search."
               : "You don't own any stocks yet. Go to Popular or Follow to start trading."}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {portfolioWithPrices.map((stock) => (
               <StockCard
                 key={stock.symbol}

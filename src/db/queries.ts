@@ -166,9 +166,7 @@ export async function getAllOwnedStocksWithUsers(): Promise<
   }));
 }
 
-export async function getUserAmountOfStocksDb(
-  clerkId: string,
-): Promise<number> {
+export async function getUserAmountOfStocksDb(clerkId: string): Promise<number> {
   const result = await sql`
     SELECT COUNT(*) as count FROM (
       SELECT symbol
@@ -179,4 +177,62 @@ export async function getUserAmountOfStocksDb(
     ) as owned_stocks
   `;
   return Number(result[0].count);
+}
+
+export async function savePortfolioSnapshot(
+  clerkId: string,
+  totalValue: number,
+): Promise<void> {
+  await sql`
+    INSERT INTO portfolio_snapshots (user_id, total_value)
+    VALUES (${clerkId}, ${totalValue})
+  `;
+}
+
+export async function getPortfolioSnapshots(
+  clerkId: string,
+  timeframe: "1D" | "1W" | "1M" | "1Y" | "5Y",
+): Promise<{ time: number; value: number }[]> {
+  let interval = sql`1 day`;
+  let limit = 100;
+
+  switch (timeframe) {
+    case "1D":
+      interval = sql`1 hour`; // If we have hourly snapshots
+      limit = 24;
+      break;
+    case "1W":
+      interval = sql`1 day`;
+      limit = 7;
+      break;
+    case "1M":
+      interval = sql`1 day`;
+      limit = 30;
+      break;
+    case "1Y":
+      interval = sql`1 week`;
+      limit = 52;
+      break;
+    case "5Y":
+      interval = sql`1 month`;
+      limit = 60;
+      break;
+  }
+
+  const result = await sql`
+    SELECT 
+      EXTRACT(EPOCH FROM created_at) as time,
+      total_value as value
+    FROM portfolio_snapshots
+    WHERE user_id = ${clerkId}
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+
+  return result
+    .map((r) => ({
+      time: Number(r.time),
+      value: Number(r.value),
+    }))
+    .reverse();
 }

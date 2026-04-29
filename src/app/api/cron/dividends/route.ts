@@ -1,7 +1,12 @@
 import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { getCompanyDetails, getStockPrice } from "@/dal/market-data";
-import { addDividendDb, getAllOwnedStocksWithUsers } from "@/db/queries";
+import {
+  addDividendDb,
+  getAllOwnedStocksWithUsers,
+  getUser,
+  savePortfolioSnapshot,
+} from "@/db/queries";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -11,18 +16,11 @@ export async function GET(request: Request) {
 
   try {
     const ownedStocks = await getAllOwnedStocksWithUsers();
-    if (ownedStocks.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: "No portfolios to process",
-      });
-    }
 
+    // Get all unique symbols to fetch prices and yields
     const uniqueSymbols = Array.from(new Set(ownedStocks.map((s) => s.symbol)));
-
     const stockData: Record<string, { price: number; yield: number }> = {};
 
-    // Fetch data for all unique symbols
     for (const symbol of uniqueSymbols) {
       try {
         const [price, details] = await Promise.all([
@@ -39,35 +37,59 @@ export async function GET(request: Request) {
       }
     }
 
-    const userDividends: Record<string, number> = {};
+    // Group by user to calculate total portfolio value and dividends
+    const userStats: Record<
+      string,
+      { portfolioValue: number; dividend: number }
+    > = {};
 
     for (const owned of ownedStocks) {
       const data = stockData[owned.symbol];
-      if (data && data.yield > 0 && data.price > 0) {
-        // Daily dividend: (shares * price * (yield / 100)) / 365
-        const dailyDividend =
-          (owned.shares * data.price * (data.yield / 100)) / 365;
-        userDividends[owned.user_id] =
-          (userDividends[owned.user_id] || 0) + dailyDividend;
+      if (data && data.price > 0) {
+        if (!userStats[owned.user_id]) {
+          userStats[owned.user_id] = { portfolioValue: 0, dividend: 0 };
+        }
+
+        userStats[owned.user_id].portfolioValue += owned.shares * data.price;
+
+        if (data.yield > 0) {
+          const dailyDividend =
+            (owned.shares * data.price * (data.yield / 100)) / 365;
+          userStats[owned.user_id].dividend += dailyDividend;
+        }
       }
     }
 
-    const updatePromises = Object.entries(userDividends).map(
-      async ([userId, amount]) => {
-        console.log(`User: ${userId} amount ${amount}`)
-        if (amount > 0.005) {
-          // Only update if it's at least half a cent
-          await addDividendDb(userId, Number(amount.toFixed(4)));
-          revalidateTag(`portfolio-${userId}`,'max');
-        }
-      },
-    );
+    // Process each user: Add dividends and save snapshot
+    // We also need to process users who might not have stocks but have a balance
+    // For simplicity in this cron, we'll focus on users with active portfolios
+    const processedUserIds = Object.keys(userStats);
+
+    const updatePromises = processedUserIds.map(async (userId) => {
+      const stats = userStats[userId];
+      const user = await getUser(userId);
+      if (!user) return;
+
+      const currentBalance = Number(user.balance);
+      const totalValue = currentBalance + stats.portfolioValue;
+
+      // 1. Add Dividend if applicable
+      if (stats.dividend > 0.005) {
+        await addDividendDb(userId, Number(stats.dividend.toFixed(4)));
+      }
+
+      // 2. Save Snapshot for history
+      await savePortfolioSnapshot(userId, totalValue);
+
+      // 3. Revalidate cache
+      revalidateTag(`portfolio-${userId}`, "max");
+    });
 
     await Promise.all(updatePromises);
 
     return NextResponse.json({
       success: true,
-      processedUsers: Object.keys(userDividends).length,
+      processedUsers: processedUserIds.length,
       symbolsProcessed: uniqueSymbols.length,
     });
   } catch (error: any) {
@@ -78,3 +100,4 @@ export async function GET(request: Request) {
     );
   }
 }
+  
