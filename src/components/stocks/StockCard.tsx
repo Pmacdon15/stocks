@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts';
-import { useUnfollowStock, useFollowStock, useTradeStock } from '@/hooks/use-stock-mutations';
+import { useTradeStock } from '@/hooks/use-stock-mutations';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -16,13 +16,12 @@ interface StockCardProps {
   ownedShares?: number;
   averageCost?: number;
   isFollowed?: boolean;
+  onFollowToggle?: () => void;
 }
 
-export function StockCard({ symbol, price, ownedShares, averageCost, isFollowed }: StockCardProps) {
+export function StockCard({ symbol, price, ownedShares, averageCost, isFollowed, onFollowToggle }: StockCardProps) {
   const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M' | '1Y' | '5Y'>('1D');
   const [sharesStr, setSharesStr] = useState('1');
-  const unfollow = useUnfollowStock();
-  const follow = useFollowStock();
   const trade = useTradeStock();
 
   const handleTrade = (type: 'BUY' | 'SELL') => {
@@ -90,11 +89,11 @@ export function StockCard({ symbol, price, ownedShares, averageCost, isFollowed 
         </div>
         {isFollowed !== undefined && (
           isFollowed ? (
-            <Button variant="ghost" size="lg" onClick={() => unfollow.mutate(symbol)} disabled={unfollow.isPending} className="text-muted-foreground hover:text-destructive">
+            <Button variant="ghost" size="lg" onClick={onFollowToggle} className="text-muted-foreground hover:text-destructive">
               Unfollow
             </Button>
           ) : (
-            <Button variant="outline" size="lg" onClick={() => follow.mutate(symbol)} disabled={follow.isPending}>
+            <Button variant="outline" size="lg" onClick={onFollowToggle}>
               Follow
             </Button>
           )

@@ -8,7 +8,7 @@ export async function followStockAction(symbol: string) {
   return res.match(
     (data) => {
       updateTag(`followed-stocks-${data.user_id}`);
-      return { data };
+      return { data: { ...data, symbol } };
     },
     (err) => {
       return { error: err.reason };
@@ -21,7 +21,7 @@ export async function unfollowStockAction(symbol: string) {
   return res.match(
     (data) => {
       updateTag(`followed-stocks-${data.user_id}`);
-      return { data };
+      return { data: { ...data, symbol } };
     },
     (err) => {
       return { error: err.reason };

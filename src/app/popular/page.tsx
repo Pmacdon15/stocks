@@ -1,36 +1,28 @@
 import { Suspense } from "react";
 import { SearchBar } from "@/components/stocks/SearchBar";
-import { StockCard } from "@/components/stocks/StockCard";
 import { getStockPrice, searchMarketStocks } from "@/dal/market-data";
 import { StockGridSkeleton } from "@/components/stocks/Skeletons";
-
 import { getFollowedStocks } from "@/dal/stocks";
+import { OptimisticStockGrid } from "@/components/stocks/OptimisticStockGrid";
 
 async function PopularList() {
   const popular = await searchMarketStocks("a");
   const followedStocks = await getFollowedStocks() ?? [];
-
   const followedSet = new Set(followedStocks.map((s) => s.symbol));
 
   const popularWithPrices = await Promise.all(
     popular.map(async (s: any) => ({
-      ...s,
-      currentPrice: await getStockPrice(s.symbol),
+      symbol: s.symbol,
+      price: await getStockPrice(s.symbol),
       isFollowed: followedSet.has(s.symbol),
     })),
   );
 
   return (
-    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {popularWithPrices.map((s: any) => (
-        <StockCard
-          key={s.symbol}
-          symbol={s.symbol}
-          price={s.currentPrice}
-          isFollowed={s.isFollowed}
-        />
-      ))}
-    </div>
+    <OptimisticStockGrid 
+      initialStocks={popularWithPrices} 
+      removeOnUnfollow={false} 
+    />
   );
 }
 
