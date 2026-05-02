@@ -1,128 +1,157 @@
-import { Activity, ArrowRight, Globe, LineChart, Shield } from "lucide-react";
+import { Globe, TrendingUp, Zap } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
+import TickerTape from "@/components/home/ticker-tape";
 import { Button } from "@/components/ui/button";
+import { getStockQuote, searchMarketStocks } from "@/dal/market-data";
+import type { StockTicker } from "@/types/types";
 
-export default function Home() {
+export default async function Home() {
+  const popularStocksPromise = searchMarketStocks("a");
+  const tickerDataPromise: Promise<StockTicker[]> = popularStocksPromise.then(
+    (data) =>
+      Promise.all(
+        data.map(async (stock: { symbol: string }) => {
+          const quote = await getStockQuote(stock.symbol);
+          return {
+            symbol: stock.symbol,
+            price: quote.price.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }),
+            change: `${quote.changePercent >= 0 ? "+" : ""}${quote.changePercent.toFixed(2)}%`,
+          };
+        }),
+      ),
+  );
+
   return (
-    <div className="flex flex-col min-h-screen py-12 px-4 overflow-hidden relative">
-      {/* Dynamic Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[100px] -z-10 animate-pulse pointer-events-none" />
-      <div className="absolute bottom-[20%] right-[-10%] w-[30%] h-[30%] rounded-full bg-accent/20 blur-[100px] -z-10 pointer-events-none" />
+    <div className="flex flex-col min-h-screen bg-background selection:bg-primary selection:text-primary-foreground overflow-hidden">
+      {/* Ticker Tape */}
+      <div className="w-full border-y border-border/40 bg-card/30 backdrop-blur-md py-4 overflow-hidden flex items-center">
+        <Suspense>
+          <TickerTape tickerDataPromise={tickerDataPromise} />
+        </Suspense>
+      </div>
 
-      <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Main Hero Bento Box */}
-        <div className="lg:col-span-8 bg-card border border-border/60 rounded-[2rem] p-8 md:p-12 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/20 text-accent-foreground text-sm font-semibold mb-8 border border-accent/20 shadow-sm backdrop-blur-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                </span>
-                Live Market Simulation
-              </div>
-              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground leading-[1.05] mb-6">
-                Trade the future,
-                <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
-                  risk free.
-                </span>
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-xl mb-12 leading-relaxed">
-                Step into a professional trading environment. Start with a
-                $10,000 simulated balance and test your strategies against
-                real-time market data.
+      <main className="flex-1 flex flex-col items-center justify-center px-4 relative">
+        {/* Background Depth */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-primary/20 rounded-full blur-[120px] -z-10 animate-pulse" />
+        <div className="absolute top-1/4 right-1/4 w-75 h-75 bg-accent/30 rounded-full blur-[100px] -z-10" />
+
+        <div className="max-w-6xl w-full text-center space-y-8">
+          <div className="space-y-2">
+            <h1 className="text-7xl md:text-[10rem] font-black tracking-tight leading-[0.85] uppercase">
+              Trade <br />
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-primary via-accent to-primary animate-gradient bg-size[200%_auto]">
+                Everything.
+              </span>
+            </h1>
+            <h2 className="text-3xl md:text-5xl font-light tracking-tighter text-muted-foreground/80 lowercase">
+              No risk. Pure performance.
+            </h2>
+          </div>
+
+          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-medium">
+            The ultimate market simulator. Real-time data, professional tools,
+            and $10k to test your edge.
+          </p>
+
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-8">
+            <Button
+              size="lg"
+              nativeButton={false}
+              render={<Link href="/trade" />}
+              className="h-16 px-12 rounded-full text-xl font-black bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/20"
+            >
+              Start Trading
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              nativeButton={false}
+              render={<Link href="/popular" />}
+              className="h-16 px-12 rounded-full text-xl font-bold border-2 hover:bg-secondary/50 transition-colors"
+            >
+              Explore Markets
+            </Button>
+          </div>
+        </div>
+      </main>
+
+      {/* New Experience Section */}
+      <section className="w-full py-32 space-y-40">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-24 group">
+            <span className="text-8xl md:text-[12rem] font-black text-primary/10 group-hover:text-primary/30 transition-colors duration-500 leading-none">
+              01
+            </span>
+            <div className="space-y-4 max-w-xl">
+              <h3 className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic flex items-center gap-4">
+                <TrendingUp className="w-10 h-10 text-primary" />
+                Precision
+              </h3>
+              <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-medium">
+                Powered by professional data feeds with accuracy. Experience the
+                market as it happens.
               </p>
             </div>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <Button
-                size="lg"
-                nativeButton={false}
-                render={<Link href="/trade" />}
-                className="rounded-2xl px-8 h-14 text-lg font-bold shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all"
-              >
-                Enter Portfolio <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button
-                size="lg"
-                variant="secondary"
-                nativeButton={false}
-                render={<Link href="/popular" />}
-                className="rounded-2xl px-8 h-14 text-lg font-bold hover:bg-secondary/80 border border-border/50"
-              >
-                View Markets
-              </Button>
+          <div className="flex flex-col md:flex-row-reverse items-start md:items-center gap-8 md:gap-24 group mt-40">
+            <span className="text-8xl md:text-[12rem] font-black text-accent/10 group-hover:text-accent/30 transition-colors duration-500 leading-none">
+              02
+            </span>
+            <div className="space-y-4 max-w-xl text-left md:text-right flex flex-col items-start md:items-end">
+              <h3 className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic flex items-center gap-4">
+                Strategy
+                <Zap className="w-10 h-10 text-accent-foreground" />
+              </h3>
+              <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-medium">
+                Backtest your wildest ideas without ever risking a single cent.
+                Build your edge with infinite capital.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-24 group mt-40">
+            <span className="text-8xl md:text-[12rem] font-black text-primary/10 group-hover:text-primary/30 transition-colors duration-500 leading-none">
+              03
+            </span>
+            <div className="space-y-4 max-w-xl">
+              <h3 className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic flex items-center gap-4">
+                <Globe className="w-10 h-10 text-primary" />
+                Access
+              </h3>
+              <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-medium">
+                Trade US equities and major crypto pairs from one interface. The
+                entire world, simulated.
+              </p>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Side Bento Boxes */}
-        <div className="lg:col-span-4 flex flex-col gap-6 h-full">
-          {/* Top Mini Box */}
-          <div className="bg-primary text-primary-foreground rounded-[2rem] p-8 shadow-xl flex-1 flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div className="absolute -right-6 -top-6 text-white/10 group-hover:rotate-12 transition-transform duration-500">
-              <LineChart className="w-40 h-40" />
-            </div>
-            <div className="relative z-10">
-              <div className="h-14 w-14 bg-white/10 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-md">
-                <Activity className="h-7 w-7 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold mb-3 text-white">
-                Real-Time Data
-              </h3>
-              <p className="text-primary-foreground/90 leading-relaxed font-medium">
-                Lightning fast stock quotes and historical charts powered by
-                Alpaca Markets.
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom Mini Box */}
-          <div className="bg-card border border-border/60 rounded-[2rem] p-8 shadow-lg flex-1 flex flex-col justify-between group hover:border-accent/30 transition-colors relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-tr from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="relative z-10">
-              <div className="h-14 w-14 bg-accent/10 rounded-2xl flex items-center justify-center mb-6">
-                <Shield className="h-7 w-7 text-accent-foreground" />
-              </div>
-              <h3 className="text-2xl font-bold mb-3 text-foreground">
-                Zero Capital Risk
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Build confidence in your trading logic and algorithms before
-                deploying real cash.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Full Width Bottom Bento */}
-        <div className="lg:col-span-12 bg-secondary/30 border border-border/60 rounded-[2rem] p-8 md:p-10 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 hover:bg-secondary/60 transition-colors backdrop-blur-sm">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
-            <div className="h-16 w-16 bg-background rounded-2xl shadow-sm flex items-center justify-center shrink-0 border border-border/50">
-              <Globe className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-foreground mb-1">
-                Join thousands of simulated traders
-              </h3>
-              <p className="text-muted-foreground text-lg">
-                Experience the most realistic market simulator on the web.
-              </p>
-            </div>
-          </div>
+      {/* Final Call to Action */}
+      <footer className="w-full py-24 border-t border-border/40 text-center">
+        <div className="max-w-4xl mx-auto px-4 space-y-8">
+          <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter">
+            Ready to{" "}
+            <span className="text-primary italic underline decoration-accent/50 underline-offset-8">
+              test
+            </span>{" "}
+            your edge?
+          </h2>
           <Button
-            variant="outline"
             size="lg"
             nativeButton={false}
-            className="rounded-xl h-14 px-8 whitespace-nowrap bg-background border-border/50 hover:border-primary/30 text-lg font-semibold shadow-sm w-full md:w-auto"
-            render={<Link href="/follow" />}
+            render={<Link href="/trade" />}
+            className="h-20 px-16 rounded-full text-2xl font-black bg-foreground text-background hover:scale-105 transition-transform"
           >
-            Start Your Watchlist
+            Enter Simulation
           </Button>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

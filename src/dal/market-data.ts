@@ -34,6 +34,39 @@ export async function getStockPrice(symbol: string): Promise<number> {
   }
 }
 
+export async function getStockQuote(symbol: string): Promise<{ price: number; changePercent: number }> {
+  "use cache";
+  cacheTag(`quote-stock-${symbol}`);
+  cacheLife({ revalidate: 35, expire: 35, stale: 35 });
+  await connection;
+  if (!FINNHUB_API_KEY) {
+    const price = Number((Math.random() * 100 + 50).toFixed(2));
+    const change = Number((Math.random() * 10 - 5).toFixed(2));
+    return { price, changePercent: change };
+  }
+
+  try {
+    const res = await fetch(
+      `${BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
+    );
+
+    if (!res.ok) throw new Error("Failed to fetch stock quote");
+
+    const data = await res.json();
+    if (data.c === 0 && data.h === 0) throw new Error("Quote not found");
+
+    return {
+      price: data.c,
+      changePercent: data.dp,
+    };
+  } catch (e) {
+    console.error(e);
+    const price = Number((Math.random() * 100 + 50).toFixed(2));
+    const change = Number((Math.random() * 10 - 5).toFixed(2));
+    return { price, changePercent: change };
+  }
+}
+
 export async function searchMarketStocks(query: string) {
   "use cache";
   cacheTag(`popular-stocks`);
