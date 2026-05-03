@@ -28,11 +28,11 @@ export default async function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background selection:bg-primary selection:text-primary-foreground overflow-hidden">
       {/* Ticker Tape */}
-      <div className="w-full border-y border-border/40 bg-card/30 backdrop-blur-md py-4 overflow-hidden flex items-center">
+      {/* <div className="w-full border-y border-border/40 bg-card/30 backdrop-blur-md py-4 overflow-hidden flex items-center"> */}
         <Suspense>
           <TickerTape tickerDataPromise={tickerDataPromise} />
         </Suspense>
-      </div>
+      {/* </div> */}
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 relative">
         {/* Background Depth */}
